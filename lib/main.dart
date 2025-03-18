@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'splashscreen.dart';
+import 'ResetPassword.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,11 +16,26 @@ void main() async {
 class MamEaseApp extends StatelessWidget {
   const MamEaseApp({super.key});
 
+  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+      title: 'My App',
+initialRoute: '/',  // Set the initial route
+ onGenerateRoute: (settings) {
+        Uri uri = Uri.parse(settings.name ?? '');
+        
+     if (uri.path == '/reset-password') {
+  String? code = uri.queryParameters['code'];  // Extract reset code
+  if (code != null) {
+    return MaterialPageRoute(
+      builder: (_) => ResetPasswordScreen(code: code), // Pass code here
+    );
+  }
+}
+        return MaterialPageRoute(builder: (_) => SplashScreen());
+      },
     );
   }
 }

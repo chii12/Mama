@@ -33,6 +33,12 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    if (window.location.search.includes("code=")) {
+      window.location.href = window.location.origin + window.location.pathname + "#/reset-password" + window.location.search;
+    }
+  </script>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
