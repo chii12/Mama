@@ -159,36 +159,44 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUp() async {
-    try {
-      final response = await supabase.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      if (response.user != null) {
-        await supabase.from('users').insert({
-          'id': response.user!.id,
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'dob': _selectedDob?.toIso8601String(),
-          'due_date': _selectedDueDate?.toIso8601String(),
-          'emergency_contact': _emergencyContactController.text.trim(),
-          'role': 'user',
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Signup successful! Please log in.")),
-        );
-
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")),
-      );
-    }
+  if (_passwordController.text.trim() != _confirmPasswordController.text.trim()) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Passwords do not match!")),
+    );
+    return; // Stop execution if passwords don't match
   }
+
+  try {
+    final response = await supabase.auth.signUp(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    if (response.user != null) {
+      await supabase.from('users').insert({
+        'id': response.user!.id,
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'dob': _selectedDob?.toIso8601String(),
+        'due_date': _selectedDueDate?.toIso8601String(),
+        'emergency_contact': _emergencyContactController.text.trim(),
+        'role': 'user',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Signup successful! Please log in.")),
+      );
+
+      Navigator.pop(context);
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: ${e.toString()}")),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -197,12 +205,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       body: Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
-          child: Card(
+           child: SingleChildScrollView(
+          physics: BouncingScrollPhysics(),
+            child: Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             elevation: 5,
-            child: Padding(
+              child: Padding(
               padding: EdgeInsets.all(20.0),
-              child: Column(
+               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.account_circle, size: 50, color: Colors.pink),
@@ -308,6 +318,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
       ),
+      )
     );
   }
 }

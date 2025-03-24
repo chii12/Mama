@@ -219,29 +219,34 @@ bool isImage(String fileType) {
             : Icon(Icons.insert_drive_file, size: 40, color: Colors.blue),
         title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(description),
-            Text("File Type: ${fileType.toUpperCase()}", style: TextStyle(color: Colors.grey)),
-          ],
-        ),
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(description),
+    Text(
+      "Status: ${status.toLowerCase()}",
+      style: TextStyle(
+        color: status == 'published' ? Colors.green : Colors.orange,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  ],
+),
+
         onTap: () => launchUrl(Uri.parse(fileUrl)),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (status == 'draft')  // Show only for drafts
-              ElevatedButton(
-                onPressed: () => _uploadDraft(docId), 
-                child: Text("Upload"),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              ),
-            SizedBox(width: 10),
-            IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteFile(fileName, docId),
-            ),
-          ],
+         trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (doc['status'] == 'draft') // Show Upload button only for drafts
+          IconButton(
+            icon: Icon(Icons.upload, color: Colors.green),
+            onPressed: () => _uploadDraft(doc['id']),
+          ),
+        IconButton(
+          icon: Icon(Icons.delete, color: Colors.red),
+          onPressed: () => _deleteFile(doc['file_name'], doc['id']),
         ),
+      ],
+    ),
       ),
     );
   }).toList(),

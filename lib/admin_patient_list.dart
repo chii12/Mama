@@ -178,7 +178,7 @@ void _addNewUser() {
                   'dob': dob,
                   'due_date': dueDate,
                   'emergency_contact': emergencyContact,
-                  'role': 'patient', // Default role is patient
+                  'role': 'user', // Default role is patient
                 });
 
                 print("User Inserted: $userResponse");
