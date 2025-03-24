@@ -33,6 +33,7 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^5.0.0
   intl: ^0.18.1
+  url_launcher: ^6.1.14  # Use the latest version
 
 
 
@@ -82,6 +83,7 @@ flutter:
       - assets/images/DocNutrition.png
       - assets/images/DocSched.png
       - assets/images/DocNewborn.png
+      - assets/images/booking.jpg
       
   #To add assets to your application, add an assets section, like this:
    

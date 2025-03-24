@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  final String code;
+  final String code; // Ensure this is defined
 
-  ResetPasswordScreen({required this.code});
+  const ResetPasswordScreen({Key? key, required this.code}) : super(key: key); // Fix constructor
 
   @override
   _ResetPasswordScreenState createState() => _ResetPasswordScreenState();
 }
-
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final supabase = Supabase.instance.client;
@@ -20,24 +18,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   void initState() {
     super.initState();
-    _loadEmail();
+    _loadUserEmail();
   }
 
-  Future<void> _loadEmail() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userEmail = prefs.getString('reset_email'); // Retrieve email
-    });
-
-    if (userEmail == null) {
-      print("Error: Email not found");
+  Future<void> _loadUserEmail() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      print("Error: No active session found.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Session expired. Request a new reset link."), backgroundColor: Colors.red),
+      );
+      return;
     }
+
+    setState(() {
+      userEmail = user.email;
+    });
+    print("User Email: $userEmail"); // Debugging
   }
 
   Future<void> resetPassword() async {
     if (userEmail == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: Email not found"), backgroundColor: Colors.red),
+        SnackBar(content: Text("Error: No user session. Try again."), backgroundColor: Colors.red),
       );
       return;
     }
@@ -52,14 +55,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Verify OTP with email
-      await supabase.auth.verifyOTP(
-        email: userEmail!,
-        token: widget.code,
-        type: OtpType.recovery,
-      );
-
-      // Update the user's password
       await supabase.auth.updateUser(
         UserAttributes(password: _passwordController.text.trim()),
       );
@@ -68,7 +63,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         SnackBar(content: Text("Password reset successful!"), backgroundColor: Colors.green),
       );
 
-      Navigator.pushNamed(context, '/login'); // Redirect to login
+      Navigator.pushReplacementNamed(context, '/login'); // Redirect to login screen
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: ${e.toString()}"), backgroundColor: Colors.red),

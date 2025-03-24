@@ -1,0 +1,62 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter run
+
+## exception
+
+ExistingDartDevelopmentServiceException: DartDevelopmentServiceException: JSON-RPC error 100: Existing VM service clients prevent DDS from taking control.
+
+```
+```
+
+## flutter doctor
+
+```
+[32m[✓][39m Flutter (Channel stable, 3.29.0, on Microsoft Windows [Version 10.0.19045.5131], locale en-PH) [1,811ms]
+    [32m•[39m Flutter version 3.29.0 on channel stable at C:\FlutterDev\flutter
+    [32m•[39m Upstream repository https://github.com/flutter/flutter.git
+    [32m•[39m Framework revision 35c388afb5 (6 weeks ago), 2025-02-10 12:48:41 -0800
+    [32m•[39m Engine revision f73bfc4522
+    [32m•[39m Dart version 3.7.0
+    [32m•[39m DevTools version 2.42.2
+
+[32m[✓][39m Windows Version (10 Home 64-bit, 22H2, 2009) [8.5s]
+
+[33m[!][39m Android toolchain - develop for Android devices (Android SDK version 35.0.1) [22.7s]
+    [32m•[39m Android SDK at D:\android-SDK\Sdk
+    [32m•[39m Platform android-35, build-tools 35.0.1
+    [32m•[39m Java binary at: D:\Android\jbr\bin\java
+      This is the JDK bundled with the latest Android Studio installation on this machine.
+      To manually set the JDK path, use: `flutter config --jdk-dir="path/to/jdk"`.
+    [32m•[39m Java version OpenJDK Runtime Environment (build 21.0.4+-12508038-b607.1)
+    [33m![39m Some Android licenses not accepted. To resolve this, run: flutter doctor --android-licenses
+
+[32m[✓][39m Chrome - develop for the web [26ms]
+    [32m•[39m Chrome at C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
+
+[31m[✗][39m Visual Studio - develop Windows apps [24ms]
+    [31m✗[39m Visual Studio not installed; this is necessary to develop Windows apps.
+      Download at https://visualstudio.microsoft.com/downloads/.
+      Please install the "Desktop development with C++" workload, including all of its default components
+
+[32m[✓][39m Android Studio (version 2024.2) [19ms]
+    [32m•[39m Android Studio at D:\Android
+    [32m•[39m Flutter plugin can be installed from:
+      🔨 https://plugins.jetbrains.com/plugin/9212-flutter
+    [32m•[39m Dart plugin can be installed from:
+      🔨 https://plugins.jetbrains.com/plugin/6351-dart
+    [32m•[39m Java version OpenJDK Runtime Environment (build 21.0.4+-12508038-b607.1)
+
+[32m[✓][39m Connected device (3 available) [244ms]
+    [32m•[39m Windows (desktop) • windows • windows-x64    • Microsoft Windows [Version 10.0.19045.5131]
+    [32m•[39m Chrome (web)      • chrome  • web-javascript • Google Chrome 134.0.6998.119
+    [32m•[39m Edge (web)        • edge    • web-javascript • Microsoft Edge 134.0.3124.66
+
+[32m[✓][39m Network resources [3.7s]
+    [32m•[39m All expected network resources are available.
+
+[33m![39m Doctor found issues in 2 categories.
+```

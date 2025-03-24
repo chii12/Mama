@@ -4,6 +4,12 @@ import 'auth_screen.dart';
 import 'admindoc_rec.dart';
 import 'admin_nutrition.dart';
 import 'admin_newborn.dart';
+import 'admin_patient_list.dart';
+import 'AdminSchedScreen.dart';
+import 'admin_notif_screen.dart';
+import 'dart:async';
+
+
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -11,25 +17,29 @@ class AdminHomeScreen extends StatefulWidget {
   @override
   _AdminHomeScreenState createState() => _AdminHomeScreenState();
 }
-
+StreamSubscription<List<Map<String, dynamic>>>? _appointmentSubscription;
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
   final supabase = Supabase.instance.client;
   int _selectedIndex = 0;
   bool _isSidebarOpen = false; // Sidebar visibility state
+  int _unreadNotificationCount = 0; // 🔴 Unread notifications count
 
-  final List<Widget> _screens = [
-    AdminOverviewScreen(),
+   final List<Widget> _screens = [
+    AdminDashboard(),
     AdminDoctorRecommendation(),
     AdminNutritionScreen(),
     AdminNewbornScreen(),
-    AdminScheduleScreen(),
+    AdminSchedScreen(),
     AdminResourcesScreen(),
+    AdminPatientList(),
   ];
 
   @override
   void initState() {
     super.initState();
     _checkAdmin();
+    _fetchUnreadNotificationCount(); // ✅ Fetch unread notification count
+    _listenForAppointmentChanges(); // ✅ Listen for real-time appointment updates
   }
 
   Future<void> _checkAdmin() async {
@@ -48,6 +58,121 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     } catch (e) {
       await supabase.auth.signOut();
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+    }
+  }
+
+  // ✅ Fetch unread notifications count
+  Future<void> _fetchUnreadNotificationCount() async {
+    final response = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('is_read', false);
+
+    setState(() {
+      _unreadNotificationCount = response.length;
+    });
+  }
+
+  // ✅ Listen for real-time appointment updates
+ void _listenForAppointmentChanges() async {
+  // Prevent multiple listeners
+  if (_appointmentSubscription != null) {
+    print("⚠️ Listener already running. Skipping duplicate listener setup.");
+    return;
+  }
+
+  // Fetch all admin users
+  final adminResponse = await supabase.from('users').select('id').eq('role', 'admin');
+  List<String> adminIds = adminResponse.map<String>((admin) => admin['id']).toList();
+
+  _appointmentSubscription = supabase
+      .from('appointments')
+      .stream(primaryKey: ['id'])
+      .listen((List<Map<String, dynamic>> updatedAppointments) {
+    for (var appointment in updatedAppointments) {
+      String userId = appointment['user_id']; // The user who booked the appointment
+
+    if (appointment['status'] == 'canceled') {
+        for (String adminId in adminIds) {
+          _sendNotification(
+            adminId,
+            "Appointment Canceled",
+            "A user has canceled their appointment at ${appointment['place']} on ${appointment['date']}.",
+          );
+        }
+      }
+    }
+    setState(() {
+      _unreadNotificationCount++;
+    });
+  });
+}
+
+
+
+  // ✅ Function to send notifications
+ Future<void> _sendNotification(String userId, String title, String message) async {
+  try {
+    // Check if a similar notification already exists
+    final existingNotif = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('title', title)
+        .eq('message', message)
+        .maybeSingle();
+
+    // If the notification already exists, do not insert a duplicate
+    if (existingNotif != null) {
+      print("🔄 Notification already exists, skipping duplicate entry.");
+      return;
+    }
+
+    // Otherwise, insert the new notification
+    await supabase.from('notifications').insert({
+      'user_id': userId,
+      'title': title,
+      'message': message,
+      'is_read': false,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+    print("📩 Notification sent to user $userId: $title");
+  } catch (e) {
+    print("❌ Error sending notification: $e");
+  }
+}
+
+
+  // ✅ Function to update appointment status and notify users
+  Future<void> _updateAppointmentStatus(String id, String status) async {
+    try {
+      await supabase.from('appointments').update({'status': status}).eq('id', id);
+
+      // Fetch user_id of the appointment
+      final response = await supabase.from('appointments').select('user_id, place, date, time').eq('id', id).maybeSingle();
+      
+      if (response != null) {
+        String userId = response['user_id'];
+        String place = response['place'];
+        String date = response['date'];
+        String time = response['time'];
+
+        if (status == 'approved') {
+          _sendNotification(
+            userId,
+            "Appointment Approved",
+            "Your appointment at $place on $date at $time has been approved.",
+          );
+        } else if (status == 'rejected') {
+          _sendNotification(
+            userId,
+            "Appointment Rejected",
+            "Your appointment at $place on $date at $time has been rejected.",
+          );
+        }
+      }
+    } catch (e) {
+      print("❌ Error updating appointment status: $e");
     }
   }
 
@@ -94,11 +219,45 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             icon: Icon(Icons.menu, color: Colors.white),
             onPressed: _toggleSidebar,
           ),
-          Text("Admin Dashboard", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text("Doc Dashboard", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
           Row(
             children: [
               IconButton(icon: Icon(Icons.search, color: Colors.white), onPressed: () {}),
-              IconButton(icon: Icon(Icons.notifications, color: Colors.white), onPressed: () {}),
+
+              // ✅ Notification Icon with Badge
+              Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.notifications, color: Colors.white),
+                    onPressed: () {
+                      setState(() {
+                        _unreadNotificationCount = 0;
+                      });
+                      Future.delayed(Duration(milliseconds: 100), () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AdminNotificationScreen()),
+      );
+    });
+
+                    },
+                  ),
+                  if (_unreadNotificationCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: EdgeInsets.all(6),
+                        decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                        child: Text(
+                          '$_unreadNotificationCount',
+                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+
               IconButton(
                 icon: Icon(Icons.logout, color: Colors.white),
                 onPressed: () async {
@@ -112,6 +271,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       ),
     );
   }
+
+
 
   Widget _buildSidebar() {
     return AnimatedPositioned(
@@ -158,12 +319,20 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 title: Text('Resources'),
                 onTap: () => _selectPage(5),
               ),
+              ListTile(
+               leading: Icon(Icons.people),
+               title: Text('Patients'),
+                onTap: () => _selectPage(6), // Change index as needed
+              ),
+
             ],
           ),
         ),
       ),
     );
   }
+
+  
 
   void _selectPage(int index) {
     setState(() {
@@ -173,86 +342,212 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 }
 
+
+
 // ============================== OVERVIEW PANEL WITH USER MANAGEMENT ==============================
-class AdminOverviewScreen extends StatefulWidget {
+class AdminDashboard extends StatefulWidget {
   @override
-  _AdminOverviewScreenState createState() => _AdminOverviewScreenState();
+  _AdminDashboardState createState() => _AdminDashboardState();
 }
 
-class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
+class _AdminDashboardState extends State<AdminDashboard> {
   final supabase = Supabase.instance.client;
+  int upcomingAppointments = 0;
+  int activePatients = 0;
+  int flaggedData = 0;
+  List<dynamic> pendingAppointments = [];
+  List<dynamic> flaggedEntries = [];
+  String appointmentFilter = "all";
 
-  Future<List<Map<String, dynamic>>> _fetchUsers() async {
-    final response = await supabase.from('users').select('id, name, email');
-
-    return response.map((user) => {
-      'id': user['id'],
-      'name': user['name'] ?? 'Unknown',
-      'email': user['email'] ?? 'No email',
-    }).toList();
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboardData();
   }
 
-  void _viewUser(Map<String, dynamic> user) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("User Details"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Name: ${user['name']}"),
-              Text("Email: ${user['email']}"),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("Close"),
-            ),
-          ],
-        );
-      },
-    );
+Future<void> _fetchDashboardData() async {
+  try {
+    final appointments = await supabase.from('appointments').select().eq('status', 'pending');
+    final patients = await supabase.from('users').select().eq('role', 'patient');
+    final flagged = await supabase.from('health_data').select().eq('status', 'flagged');
+
+    print("🟢 Appointments: $appointments"); // Debugging
+    print("🟢 Patients: $patients");
+    print("🟢 Flagged Data: $flagged");
+
+    if (mounted) {
+      setState(() {
+        upcomingAppointments = appointments.length;
+        activePatients = patients.length;
+        flaggedData = flagged.length;
+        pendingAppointments = appointments; // Ensure this updates correctly
+        flaggedEntries = flagged;
+      });
+    }
+  } catch (e) {
+    print("❌ Error fetching dashboard data: $e");
+  }
+}
+
+  Future<void> _updateAppointmentStatus(String id, String status) async {
+    await supabase.from('appointments').update({'status': status}).eq('id', id);
+    _fetchDashboardData();
+  }
+
+  Future<void> _updateFlaggedDataStatus(String id, String status) async {
+    await supabase.from('health_data').update({'status': status}).eq('id', id);
+    _fetchDashboardData();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _fetchUsers(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-          if (snapshot.data!.isEmpty) return Center(child: Text("No users found."));
-
-          return ListView(
-            padding: EdgeInsets.all(16),
-            children: snapshot.data!.map((user) {
-              return ListTile(
-                title: Text(user['name'], style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(user['email']),
-                onTap: () => _viewUser(user),
-                trailing: IconButton(
-                  icon: Icon(Icons.edit, color: Colors.pinkAccent),
-                  onPressed: () {}, // Edit function here
-                ),
-              );
-            }).toList(),
-          );
-        },
+      appBar: AppBar(
+        title: Text("Admin Dashboard"),
+        backgroundColor: Colors.pinkAccent,
       ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSummaryCards(),
+            SizedBox(height: 20),
+            _buildFilters(),
+            _buildActionableTasks(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryCards() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _summaryCard("Pending Appointments", upcomingAppointments.toString(), Icons.event),
+        _summaryCard("Active Patients", activePatients.toString(), Icons.people),
+        _summaryCard("Flagged Data", flaggedData.toString(), Icons.warning),
+      ],
+    );
+  }
+
+  Widget _summaryCard(String title, String count, IconData icon) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 3,
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Icon(icon, size: 40, color: Colors.pinkAccent),
+            SizedBox(height: 10),
+            Text(count, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            SizedBox(height: 5),
+            Text(title, style: TextStyle(fontSize: 14, color: Colors.black87)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilters() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        DropdownButton<String>(
+          value: appointmentFilter,
+          items: [
+            DropdownMenuItem(value: "all", child: Text("All Appointments")),
+            DropdownMenuItem(value: "pending", child: Text("Pending")),
+            DropdownMenuItem(value: "approved", child: Text("Approved")),
+            DropdownMenuItem(value: "rejected", child: Text("Rejected")),
+          ],
+          onChanged: (value) {
+            setState(() {
+              appointmentFilter = value!;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionableTasks() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Pending Actions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.pinkAccent)),
+        SizedBox(height: 10),
+        _buildPendingAppointments(),
+        _buildFlaggedData(),
+      ],
+    );
+  }
+
+Widget _buildPendingAppointments() {
+  List<dynamic> filteredAppointments = pendingAppointments.where((appointment) {
+    if (appointmentFilter == "all") return true;
+    return appointment['status'] == appointmentFilter;
+  }).toList();
+
+  if (filteredAppointments.isEmpty) {
+    return Center(child: Text("No pending appointments.", style: TextStyle(fontSize: 16, color: Colors.grey)));
+  }
+
+  return Column(
+    children: filteredAppointments.map((appointment) {
+      return Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 3,
+        child: ListTile(
+          title: Text("Appointment at ${appointment['place']}", style: TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text("${appointment['date']} at ${appointment['time']}"),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: Icon(Icons.check_circle, color: Colors.green),
+                onPressed: () => _updateAppointmentStatus(appointment['id'], 'approved'),
+              ),
+              IconButton(
+                icon: Icon(Icons.cancel, color: Colors.red),
+                onPressed: () => _updateAppointmentStatus(appointment['id'], 'rejected'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }).toList(),
+  );
+}
+
+
+  Widget _buildFlaggedData() {
+    return Column(
+      children: flaggedEntries.map((entry) {
+        return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          elevation: 3,
+          child: ListTile(
+            title: Text("Flagged Data: ${entry['data_type']}", style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("Value: ${entry['value']}, Reported by: ${entry['reported_by']}"),
+            trailing: IconButton(
+              icon: Icon(Icons.check_circle, color: Colors.green),
+              onPressed: () => _updateFlaggedDataStatus(entry['id'], 'resolved'),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
 
-// Dummy placeholders for other sections
-class AdminScheduleScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Center(child: Text("Schedule Panel"));
-}
 
 class AdminResourcesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(child: Text("Resources Panel"));
 }
+
+
+

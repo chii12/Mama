@@ -1,2 +1,4 @@
-2025/03/11-08:43:52.732 5318 Creating DB C:\Users\Admin\AppData\Local\Temp\flutter_tools.ab6329ab\flutter_tools_chrome_device.ca61ba0b\Default\Extension Scripts since it was missing.
-2025/03/11-08:43:54.134 5318 Reusing MANIFEST C:\Users\Admin\AppData\Local\Temp\flutter_tools.ab6329ab\flutter_tools_chrome_device.ca61ba0b\Default\Extension Scripts/MANIFEST-000001
+2025/03/21-20:18:03.325 275c Log #3: 0 ops saved to Table #4 OK
+2025/03/21-20:18:03.326 275c Archiving C:\Users\Admin\AppData\Local\Temp\flutter_tools.ea136ca8\flutter_tools_chrome_device.9e84c144\Default\Extension Scripts/000003.log: OK
+2025/03/21-20:18:03.327 275c Archiving C:\Users\Admin\AppData\Local\Temp\flutter_tools.ea136ca8\flutter_tools_chrome_device.9e84c144\Default\Extension Scripts/MANIFEST-000001: OK
+2025/03/21-20:18:03.816 275c **** Repaired leveldb C:\Users\Admin\AppData\Local\Temp\flutter_tools.ea136ca8\flutter_tools_chrome_device.9e84c144\Default\Extension Scripts; recovered 0 files; 0 bytes. Some data may have been lost. ****

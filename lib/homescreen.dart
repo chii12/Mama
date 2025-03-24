@@ -17,7 +17,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     HomeScreen(),
     AppointmentsScreen(),
-    RemindersScreen(),
+    NotificationScreen(),
     PregnancyModulesScreen(),
   ];
 
@@ -54,7 +54,7 @@ class _MainScreenState extends State<MainScreen> {
                   _buildNavButton(Icons.home, "Home", 0),
                   _buildNavButton(Icons.event, "Appointments", 1),
                   _buildNavButton(Icons.notifications, "Reminders", 2),
-                  _buildNavButton(Icons.pregnant_woman, "Pregnancy", 3),
+                  _buildNavButton(Icons.book, "Modules", 3),
                 ],
               ),
             ),
